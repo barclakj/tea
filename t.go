@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-type Task struct {
-	Id        int      `json:"id"`
+type task struct {
+	ID        int      `json:"id"`
 	Name      string   `json:"name"`
 	Due       string   `json:"due"`
 	CreatedTs int      `json:"createdTs"`
@@ -24,9 +24,9 @@ type Task struct {
 	Topics    []string `json:"topics"`
 }
 
-type TaskQueryResponse []Task
+type taskQueryResponse []task
 
-const T_URL = "http://localhost:1643/t"
+const tURL = "http://localhost:1643/t"
 
 func main() {
 	httpClient := http.Client{
@@ -40,21 +40,22 @@ func main() {
 
 	switch action := os.Args[1]; action {
 	case "-a":
-		postTask(httpClient, argsToTask(os.Args))
+		t := postTask(httpClient, argsToTask(os.Args))
+		printTask(&t)
 	case "-d":
 		item, _ := strconv.Atoi(os.Args[2])
 		deleteTask(httpClient, item)
 	case "-r":
 		item, _ := strconv.Atoi(os.Args[2])
-		task := getTask(httpClient, item)
-		printTask(&task)
+		t := getTask(httpClient, item)
+		printTask(&t)
 	default:
 		printInvalidSyntaxResponse()
 	}
 }
 
-func argsToTask(args []string) Task {
-	var t Task
+func argsToTask(args []string) task {
+	var t task
 
 	t.Name = args[2]
 	if len(args) > 3 {
@@ -80,21 +81,21 @@ func printInvalidSyntaxResponse() {
 	fmt.Printf("Invalid command syntax\n")
 }
 
-func printTask(task *Task) {
-	fmt.Printf("P%d (%d) %s [%d] %s\n", task.Priority, task.Id, task.Name, task.DueTs, task.Topics)
+func printTask(task *task) {
+	fmt.Printf("P%d (%d) %s [%d] %s\n", task.Priority, task.ID, task.Name, task.DueTs, task.Topics)
 }
 
-func printResponse(queryResponse TaskQueryResponse) {
+func printResponse(queryResponse taskQueryResponse) {
 	fmt.Printf("Results,%d\n", len(queryResponse))
 	for _, result := range queryResponse {
-		fmt.Printf("%s,%d,%d,%d, %s\n", result.Id, result.CreatedTs, result.DueTs, result.Priority, result.Due)
+		fmt.Printf("%d,%d,%d,%d, %s, %s\n", result.ID, result.CreatedTs, result.DueTs, result.Priority, result.Due, result.Name)
 	}
 }
 
-func postTask(httpClient http.Client, task Task) Task {
-	path := T_URL + "/"
+func postTask(httpClient http.Client, t task) task {
+	path := tURL + "/"
 
-	data, err := json.Marshal(task)
+	data, err := json.Marshal(t)
 	fmt.Printf("%s\n", data)
 
 	req, err := http.NewRequest(http.MethodPost, path, bytes.NewReader(data))
@@ -103,7 +104,7 @@ func postTask(httpClient http.Client, task Task) Task {
 	}
 	body := execAndReturnBody(httpClient, req)
 
-	postResult := Task{}
+	postResult := task{}
 	jsonErr := json.Unmarshal(body, &postResult)
 	if jsonErr != nil {
 		log.Fatal(jsonErr)
@@ -111,8 +112,8 @@ func postTask(httpClient http.Client, task Task) Task {
 	return postResult
 }
 
-func getTask(httpClient http.Client, id int) Task {
-	path := T_URL + "/" + strconv.Itoa(id)
+func getTask(httpClient http.Client, id int) task {
+	path := tURL + "/" + strconv.Itoa(id)
 
 	req, err := http.NewRequest(http.MethodGet, path, nil)
 	if err != nil {
@@ -120,7 +121,7 @@ func getTask(httpClient http.Client, id int) Task {
 	}
 	body := execAndReturnBody(httpClient, req)
 
-	getResult := Task{}
+	getResult := task{}
 	jsonErr := json.Unmarshal(body, &getResult)
 	if jsonErr != nil {
 		log.Fatal(jsonErr)
@@ -130,7 +131,7 @@ func getTask(httpClient http.Client, id int) Task {
 }
 
 func deleteTask(httpClient http.Client, id int) {
-	path := T_URL + "/" + strconv.Itoa(id)
+	path := tURL + "/" + strconv.Itoa(id)
 
 	req, err := http.NewRequest(http.MethodDelete, path, nil)
 	if err != nil {
